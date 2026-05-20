@@ -162,19 +162,17 @@ The frontend (Vite + React) is hosted on Vercel. The backend (FastAPI + OpenCV +
 ### 1. Deploy the backend to Render
 
 1. Push this repo to GitHub (already at `https://github.com/Amrutha-J822/DriveSight-Agent`).
-2. In the Render dashboard click **New → Blueprint** and select this repo. Render reads `render.yaml` and provisions:
-   - A web service named `drivesight-agent-api` running `uvicorn main:app`.
-   - A 1 GB persistent disk mounted at `/var/data` for SQLite and uploaded videos.
+2. In the Render dashboard click **New → Blueprint** and select this repo. Render reads `render.yaml` and provisions a free web service named `drivesight-agent-api` running `uvicorn main:app`.
 3. After creation, set the secret/optional env vars in the Render dashboard:
    - `ALLOWED_ORIGINS` — your Vercel URL, e.g. `https://drivesight-agent.vercel.app`
-   - `YOLO_MODEL_PATH` — leave blank to disable YOLO, or upload a model to the disk and point here.
    - `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` — only if you want a real LLM; otherwise leave the local heuristic.
 4. Render gives you a URL like `https://drivesight-agent-api.onrender.com`. Verify `https://<that-url>/api/health` returns `{"status":"ok"}`.
 
-Notes:
+Notes on the free tier:
 
-- Render's free tier sleeps after inactivity; YOLO + OpenCV need the **Starter** plan (or higher) for enough memory.
-- The persistent disk keeps `drivesight.db` and uploaded videos across deploys.
+- Render's free web services have 512 MB RAM and sleep after 15 min of inactivity. First request after sleep takes ~30s to wake.
+- The free tier does **not** support persistent disks. Reports and uploaded videos live in the container's ephemeral filesystem and are wiped when the container restarts or sleeps. Fine for a demo, not for production.
+- `ultralytics`/YOLO is **not** installed by default because PyTorch alone exceeds 512 MB. The backend falls back to OpenCV heuristics. To enable YOLO, upgrade to the **Starter** plan ($7/mo), uncomment `ultralytics` in `backend/requirements.txt`, upload a `.pt` model, and set `YOLO_MODEL_PATH`.
 
 ### 2. Deploy the frontend to Vercel
 

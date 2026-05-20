@@ -6,7 +6,12 @@ opencv-python-headless==4.10.0.84
 numpy==2.2.1
 httpx==0.28.1
 python-dotenv==1.0.1
-ultralytics==8.4.52
 
-# YOLO model weights are not committed.
-# Download yolov8n.pt into backend/models/ or set YOLO_MODEL_PATH to another local model.
+# Optional: install ultralytics locally if you want YOLO detection.
+# It pulls in PyTorch (~500 MB) so it is not installed by default — Render's
+# free tier only has 512 MB RAM and would OOM. Without it the backend falls
+# back to OpenCV color/shape heuristics automatically.
+#
+# pip install ultralytics==8.4.52
+#
+# Then download a model (e.g. yolov8n.pt) and set YOLO_MODEL_PATH to its path.
