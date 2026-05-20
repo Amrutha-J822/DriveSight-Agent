@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+*.pyc
+
+# Backend runtime data
+backend/data/
+backend/uploads/
+backend/models/*.pt
+backend/models/*.onnx
+
+# Local test videos can be large; keep sample files local.
+test_videos/*.mp4
+test_videos/*.mov
+test_videos/*.avi
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Local environment files
+.env
+backend/.env
+frontend/.env
