@@ -1,0 +1,17 @@
+.git
+.vercel
+
+backend/.venv
+backend/__pycache__
+backend/app/**/__pycache__
+backend/data
+backend/uploads
+backend/models/*.pt
+backend/models/*.onnx
+
+frontend/node_modules
+frontend/dist
+
+test_videos/*.mp4
+test_videos/*.mov
+test_videos/*.avi
