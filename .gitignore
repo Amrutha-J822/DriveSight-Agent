@@ -25,3 +25,4 @@ frontend/dist/
 backend/.env
 frontend/.env
 .vercel
+.cursor/

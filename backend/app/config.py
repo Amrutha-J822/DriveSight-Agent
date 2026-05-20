@@ -22,7 +22,9 @@ LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.openai.com").rstrip("/")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "").strip()
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini").strip()
 
+_default_origins = "http://localhost:5173,http://127.0.0.1:5173"
 ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",")
+    if origin.strip()
 ]

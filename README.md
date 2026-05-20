@@ -155,6 +155,47 @@ npm run dev
 - `POST /api/reports/{report_id}/feedback` saves `approve`, `dismiss`, or `escalate`.
 - `WS /ws/progress/{report_id}` streams processing progress.
 
+## Deployment (Frontend on Vercel, Backend on Render)
+
+The frontend (Vite + React) is hosted on Vercel. The backend (FastAPI + OpenCV + YOLO + WebSockets + SQLite) needs a long-running container with a persistent disk, so it is hosted on Render — Vercel's serverless functions cannot run it (size limits, no WebSockets, no persistent FS).
+
+### 1. Deploy the backend to Render
+
+1. Push this repo to GitHub (already at `https://github.com/Amrutha-J822/DriveSight-Agent`).
+2. In the Render dashboard click **New → Blueprint** and select this repo. Render reads `render.yaml` and provisions:
+   - A web service named `drivesight-agent-api` running `uvicorn main:app`.
+   - A 1 GB persistent disk mounted at `/var/data` for SQLite and uploaded videos.
+3. After creation, set the secret/optional env vars in the Render dashboard:
+   - `ALLOWED_ORIGINS` — your Vercel URL, e.g. `https://drivesight-agent.vercel.app`
+   - `YOLO_MODEL_PATH` — leave blank to disable YOLO, or upload a model to the disk and point here.
+   - `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` — only if you want a real LLM; otherwise leave the local heuristic.
+4. Render gives you a URL like `https://drivesight-agent-api.onrender.com`. Verify `https://<that-url>/api/health` returns `{"status":"ok"}`.
+
+Notes:
+
+- Render's free tier sleeps after inactivity; YOLO + OpenCV need the **Starter** plan (or higher) for enough memory.
+- The persistent disk keeps `drivesight.db` and uploaded videos across deploys.
+
+### 2. Deploy the frontend to Vercel
+
+1. Import the same GitHub repo into Vercel. The included `vercel.json` already sets the framework to `vite`, builds from `frontend/`, and outputs `frontend/dist`.
+2. In **Project Settings → Environment Variables**, add:
+   - `VITE_API_URL` = `https://drivesight-agent-api.onrender.com` (your Render URL)
+3. Trigger a deploy (push to `main` or click **Redeploy**). Vercel builds the SPA and serves it.
+
+After both are live, copy the Vercel URL back into `ALLOWED_ORIGINS` on Render so CORS lets the browser through.
+
+### 3. CLI alternative
+
+If you prefer the Vercel CLI:
+
+```bash
+npm i -g vercel
+vercel login
+vercel env add VITE_API_URL production   # paste the Render URL when prompted
+vercel --prod
+```
+
 ## Notes For Beginners
 
 - SQLite data is created automatically in `backend/data/drivesight.db`.
