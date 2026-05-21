@@ -1,6 +1,14 @@
-# DriveSight Agent
+# DriveSight Agent — Fleet Safety Review Platform
 
-DriveSight Agent is a beginner-friendly full-stack dashcam risk review app. Users upload a video, the FastAPI backend samples frames with OpenCV, optionally runs YOLO object detection, extracts structured driving risk events, asks an LLM-compatible service for a Driving Risk Brief, and stores reports plus reviewer feedback in SQLite. The React + TypeScript frontend shows upload status, WebSocket progress, report cards, an event timeline, and approve/dismiss/escalate feedback buttons.
+DriveSight Agent is a human-in-the-loop AI safety platform for fleet teams. A reviewer uploads a dashcam clip on behalf of a driver, the FastAPI backend extracts driving-risk events with OpenCV (and optionally YOLO), and the reviewer then **approves**, **dismisses**, or **escalates** each event. Decisions update the driver's risk score, generate coaching recommendations, and feed manager analytics. The React + TypeScript frontend renders three role-based portals.
+
+## Roles & portals (Phase 1)
+
+- **Reviewer** — sees the Case Queue, opens a case, decides each event (Approve / Dismiss with reason / Escalate with notes), finalizes the case.
+- **Driver** — sees their own safety score, case history, and coaching recommendations; can acknowledge coaching and add a comment on their own case.
+- **Manager** — sees the analytics dashboard (total cases, pending escalations, false-positive rate, top risk drivers) and can also act as a reviewer.
+
+> Authentication in Phase 1 is a mock login picker (you choose a seeded user). Phase 2 swaps this for Firebase Google + Email/Password without changing the rest of the app — the backend already reads the user id from a request header.
 
 ## Project Structure
 

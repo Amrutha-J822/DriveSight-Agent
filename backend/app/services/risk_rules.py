@@ -9,17 +9,29 @@ import numpy as np
 VEHICLE_LABELS = {"car", "truck", "bus", "motorcycle"}
 
 
+DEFAULT_CONFIDENCE = {
+    "vehicle_detected": 0.7,
+    "pedestrian_detected": 0.75,
+    "stop_sign_detected": 0.6,
+    "close_following_approximation": 0.65,
+    "lane_drift_placeholder": 0.55,
+    "no_major_events_detected": 0.95,
+}
+
+
 def make_event(
     event_type: str,
     timestamp_seconds: float,
     severity: str,
     description: str,
     evidence: dict[str, Any],
+    confidence: float | None = None,
 ) -> dict[str, Any]:
     return {
         "type": event_type,
         "timestamp_seconds": round(timestamp_seconds, 2),
         "severity": severity,
+        "confidence": confidence if confidence is not None else DEFAULT_CONFIDENCE.get(event_type, 0.6),
         "description": description,
         "evidence": evidence,
     }

@@ -3,9 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ALLOWED_ORIGINS
 from app.database import init_db
-from app.routers import reports, ws
+from app.routers import analytics, cases, drivers, users, ws
 
-app = FastAPI(title="DriveSight Agent API", version="0.1.0")
+app = FastAPI(title="DriveSight Fleet Safety Review API", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,6 +13,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -26,5 +27,8 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-app.include_router(reports.router)
+app.include_router(users.router)
+app.include_router(drivers.router)
+app.include_router(cases.router)
+app.include_router(analytics.router)
 app.include_router(ws.router)
