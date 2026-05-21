@@ -67,7 +67,7 @@ SCHEMA: tuple[str, ...] = (
         reviewer_id TEXT REFERENCES users(id),
         video_filename TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'new'
-            CHECK (status IN ('new','processing','review','approved','dismissed','escalated','failed')),
+            CHECK (status IN ('new','processing','review','approved','dismissed','escalated','resolved','failed')),
         progress INTEGER NOT NULL DEFAULT 0,
         ai_summary TEXT,
         brief_json TEXT,
@@ -121,10 +121,42 @@ SCHEMA: tuple[str, ...] = (
 )
 
 
+def _migrate_cases_constraint(connection: sqlite3.Connection) -> None:
+    """Rebuild ``cases`` table if its CHECK constraint is missing 'resolved'."""
+    row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='cases'"
+    ).fetchone()
+    if not row or "'resolved'" in (row["sql"] or ""):
+        return
+    connection.executescript(
+        """
+        ALTER TABLE cases RENAME TO _cases_old;
+        CREATE TABLE cases (
+            id TEXT PRIMARY KEY,
+            driver_id TEXT NOT NULL REFERENCES drivers(id),
+            reviewer_id TEXT REFERENCES users(id),
+            video_filename TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'new'
+                CHECK (status IN ('new','processing','review','approved','dismissed','escalated','resolved','failed')),
+            progress INTEGER NOT NULL DEFAULT 0,
+            ai_summary TEXT,
+            brief_json TEXT,
+            reviewer_notes TEXT,
+            error TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        INSERT INTO cases SELECT * FROM _cases_old;
+        DROP TABLE _cases_old;
+        """
+    )
+
+
 def init_db() -> None:
     with get_connection() as connection:
         for statement in SCHEMA:
             connection.execute(statement)
+        _migrate_cases_constraint(connection)
     seed_demo_data()
 
 
@@ -204,6 +236,33 @@ def list_users() -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def insert_user(user_id: str, name: str, email: str, role: str, driver_id: str | None) -> dict[str, Any]:
+    now = utc_now()
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO users (id, name, email, role, driver_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, name, email, role, driver_id, now),
+        )
+    return get_user(user_id) or {}
+
+
+def update_user(user_id: str, name: str, email: str, role: str, driver_id: str | None) -> dict[str, Any]:
+    with get_connection() as connection:
+        connection.execute(
+            "UPDATE users SET name = ?, email = ?, role = ?, driver_id = ? WHERE id = ?",
+            (name, email, role, driver_id, user_id),
+        )
+    return get_user(user_id) or {}
+
+
+def delete_user(user_id: str) -> None:
+    with get_connection() as connection:
+        connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+
 # ---------------------------------------------------------------------------
 # Drivers
 # ---------------------------------------------------------------------------
@@ -219,6 +278,33 @@ def list_drivers() -> list[dict[str, Any]]:
     with get_connection() as connection:
         rows = connection.execute("SELECT * FROM drivers ORDER BY name").fetchall()
     return [dict(row) for row in rows]
+
+
+def insert_driver(driver_id: str, name: str, employee_id: str, vehicle_id: str | None) -> dict[str, Any]:
+    now = utc_now()
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO drivers (id, name, employee_id, vehicle_id, risk_score, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (driver_id, name, employee_id, vehicle_id, 50, now),
+        )
+    return get_driver(driver_id) or {}
+
+
+def update_driver(driver_id: str, name: str, employee_id: str, vehicle_id: str | None) -> dict[str, Any]:
+    with get_connection() as connection:
+        connection.execute(
+            "UPDATE drivers SET name = ?, employee_id = ?, vehicle_id = ? WHERE id = ?",
+            (name, employee_id, vehicle_id, driver_id),
+        )
+    return get_driver(driver_id) or {}
+
+
+def delete_driver(driver_id: str) -> None:
+    with get_connection() as connection:
+        connection.execute("DELETE FROM drivers WHERE id = ?", (driver_id,))
 
 
 def adjust_driver_counters(
@@ -262,7 +348,15 @@ def create_case(case_id: str, driver_id: str, reviewer_id: str | None, filename:
         )
 
 
+VALID_CASE_STATUSES: frozenset[str] = frozenset(
+    {"new", "processing", "review", "approved", "dismissed", "escalated", "resolved", "failed"}
+)
+
+
 def update_case_progress(case_id: str, status: str, progress: int, error: str | None = None) -> None:
+    """Update case progress. ``status`` must be one of VALID_CASE_STATUSES; unknown values
+    are coerced to 'processing' so a creative WebSocket message can't crash the DB."""
+    safe_status = status if status in VALID_CASE_STATUSES else "processing"
     with get_connection() as connection:
         connection.execute(
             """
@@ -270,7 +364,7 @@ def update_case_progress(case_id: str, status: str, progress: int, error: str | 
             SET status = ?, progress = ?, error = ?, updated_at = ?
             WHERE id = ?
             """,
-            (status, progress, error, utc_now(), case_id),
+            (safe_status, progress, error, utc_now(), case_id),
         )
 
 

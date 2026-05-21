@@ -5,11 +5,13 @@ import { AlertOctagon, ArrowLeft, Check, MessageSquarePlus, X } from "lucide-rea
 import {
   addDriverComment,
   approveEvent,
+  closeEscalation,
   dismissEvent,
   escalateEvent,
   finalizeCase,
   getCase,
   openProgressSocket,
+  reprocessCase,
 } from "../api";
 import { useAuth } from "../auth";
 import { EventActionModal } from "../components/EventActionModal";
@@ -72,6 +74,7 @@ export function CaseDetailPage() {
 
   const canDecide = !!user && (user.role === "reviewer" || user.role === "manager");
   const isProcessing = safetyCase?.status === "processing" || safetyCase?.status === "new";
+  const isManager = user?.role === "manager";
 
   async function handleDecision(event: DetectedEvent, kind: "approve" | "dismiss" | "escalate", text?: string) {
     if (!caseId) return;
@@ -91,6 +94,28 @@ export function CaseDetailPage() {
       setError(caught instanceof Error ? caught.message : "Could not finalize");
     } finally {
       setFinalizing(false);
+    }
+  }
+
+  async function handleReprocess() {
+    if (!caseId) return;
+    try {
+      await reprocessCase(caseId);
+      await refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Reprocess failed");
+    }
+  }
+
+  async function handleCloseEscalation() {
+    if (!caseId) return;
+    const notes = window.prompt("Resolution notes (visible to driver):");
+    if (!notes || !notes.trim()) return;
+    try {
+      await closeEscalation(caseId, notes.trim());
+      await refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not close escalation");
     }
   }
 
@@ -115,11 +140,27 @@ export function CaseDetailPage() {
                 {finalizing ? "Finalizing…" : "Finalize case"}
               </button>
             )}
+            {canDecide && safetyCase.status === "failed" && (
+              <button className="primary-button" onClick={handleReprocess}>
+                Reprocess
+              </button>
+            )}
+            {isManager && safetyCase.status === "escalated" && (
+              <button className="primary-button" onClick={handleCloseEscalation}>
+                Close escalation
+              </button>
+            )}
           </div>
         )}
       </header>
 
       {error && <div className="error-banner">{error}</div>}
+
+      {safetyCase?.status === "failed" && safetyCase.error && (
+        <div className="error-banner">
+          <strong>Processing failed:</strong> {safetyCase.error}
+        </div>
+      )}
 
       {!safetyCase && <p className="muted">Loading case…</p>}
 

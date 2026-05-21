@@ -37,7 +37,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <NavLink to="/" end>
                 Analytics
               </NavLink>
-              <NavLink to="/queue">Case queue</NavLink>
+              <NavLink to="/queue">Cases</NavLink>
+              <NavLink to="/escalations">Escalations</NavLink>
+              <NavLink to="/drivers">Drivers</NavLink>
+              <NavLink to="/users">Users</NavLink>
               <NavLink to="/upload">Upload</NavLink>
             </>
           )}

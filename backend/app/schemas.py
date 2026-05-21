@@ -7,7 +7,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 Role = Literal["driver", "reviewer", "manager"]
-CaseStatus = Literal["new", "processing", "review", "approved", "dismissed", "escalated", "failed"]
+CaseStatus = Literal[
+    "new", "processing", "review", "approved", "dismissed", "escalated", "resolved", "failed"
+]
 EventStatus = Literal["pending", "approved", "dismissed", "escalated"]
 
 
@@ -122,3 +124,33 @@ class AnalyticsSummary(BaseModel):
     false_positive_rate: float
     most_common_event: str | None
     high_risk_drivers: list[dict[str, Any]]
+
+
+class DriverCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    employee_id: str = Field(min_length=1, max_length=60)
+    vehicle_id: str | None = Field(default=None, max_length=60)
+
+
+class DriverUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    employee_id: str = Field(min_length=1, max_length=60)
+    vehicle_id: str | None = Field(default=None, max_length=60)
+
+
+class UserCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=200)
+    role: Role
+    driver_id: str | None = None
+
+
+class UserUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=200)
+    role: Role
+    driver_id: str | None = None
+
+
+class CloseEscalationPayload(BaseModel):
+    resolution_notes: str = Field(min_length=1, max_length=1000)

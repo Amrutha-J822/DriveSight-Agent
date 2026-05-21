@@ -41,31 +41,38 @@ export function LoginPage() {
           <Shield size={32} />
           <h1>DriveSight Fleet Safety</h1>
           <p className="muted">
-            Demo login — pick a seeded user to enter their portal. (Phase 2 will replace this with
-            Firebase Google + Email/Password login.)
+            Sign in to your portal. Demo accounts (tagged below) come pre-seeded for first use —
+            sign in as the <strong>manager</strong> to create your own drivers and users, then delete
+            the demo ones. Phase 2 will swap this picker for Firebase Google / Email login.
           </p>
         </header>
 
         {error && <div className="error-banner">{error}</div>}
 
         <div className="user-options">
-          {users.map((user) => (
-            <label key={user.id} className={selectedId === user.id ? "selected" : ""}>
-              <input
-                type="radio"
-                name="user"
-                value={user.id}
-                checked={selectedId === user.id}
-                onChange={() => setSelectedId(user.id)}
-              />
-              <div>
-                <strong>{user.name}</strong>
-                <small>
-                  {user.role.toUpperCase()} · {user.email}
-                </small>
-              </div>
-            </label>
-          ))}
+          {users.map((user) => {
+            const isDemo = user.email.endsWith("@fleet.demo");
+            return (
+              <label key={user.id} className={selectedId === user.id ? "selected" : ""}>
+                <input
+                  type="radio"
+                  name="user"
+                  value={user.id}
+                  checked={selectedId === user.id}
+                  onChange={() => setSelectedId(user.id)}
+                />
+                <div>
+                  <strong>
+                    {user.name}
+                    {isDemo && <span className="pill" style={{ marginLeft: 8 }}>DEMO</span>}
+                  </strong>
+                  <small>
+                    {user.role.toUpperCase()} · {user.email}
+                  </small>
+                </div>
+              </label>
+            );
+          })}
         </div>
 
         <button className="primary-button" onClick={handleSubmit} disabled={!selectedId || submitting}>

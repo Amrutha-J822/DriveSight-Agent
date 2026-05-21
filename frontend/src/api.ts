@@ -88,7 +88,52 @@ export const escalateEvent = (caseId: string, eventId: string, notes: string) =>
 export const finalizeCase = (caseId: string, notes?: string) =>
   post<SafetyCase>(`/api/cases/${caseId}/finalize`, { notes });
 
+export const closeEscalation = (caseId: string, resolutionNotes: string) =>
+  post<SafetyCase>(`/api/cases/${caseId}/close-escalation`, { resolution_notes: resolutionNotes });
+
+export const reprocessCase = (caseId: string) =>
+  post<SafetyCase>(`/api/cases/${caseId}/reprocess`);
+
 export const getAnalytics = () => get<Analytics>("/api/analytics");
+
+// ----- Manager admin: drivers + users -----
+
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const init = withAuthHeaders({
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return parse<T>(await fetch(`${API_BASE_URL}${path}`, init));
+}
+
+async function del<T = void>(path: string): Promise<T> {
+  return parse<T>(await fetch(`${API_BASE_URL}${path}`, withAuthHeaders({ method: "DELETE" })));
+}
+
+export const createDriver = (body: { name: string; employee_id: string; vehicle_id?: string }) =>
+  post<Driver>("/api/drivers", body);
+
+export const updateDriver = (
+  driverId: string,
+  body: { name: string; employee_id: string; vehicle_id?: string },
+) => patch<Driver>(`/api/drivers/${driverId}`, body);
+
+export const deleteDriver = (driverId: string) => del(`/api/drivers/${driverId}`);
+
+export const createUser = (body: {
+  name: string;
+  email: string;
+  role: User["role"];
+  driver_id?: string | null;
+}) => post<User>("/api/users", body);
+
+export const updateUser = (
+  userId: string,
+  body: { name: string; email: string; role: User["role"]; driver_id?: string | null },
+) => patch<User>(`/api/users/${userId}`, body);
+
+export const deleteUser = (userId: string) => del(`/api/users/${userId}`);
 
 function websocketBaseUrl() {
   const url = new URL(API_BASE_URL);

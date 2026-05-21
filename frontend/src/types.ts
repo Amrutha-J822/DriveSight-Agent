@@ -65,6 +65,7 @@ export type CaseStatus =
   | "approved"
   | "dismissed"
   | "escalated"
+  | "resolved"
   | "failed";
 
 export type SafetyCase = {

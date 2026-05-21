@@ -473,6 +473,37 @@ h1, h2, h3, p { margin-top: 0; }
   color: var(--slate);
 }
 
+/* ----- Admin forms (manager driver/user mgmt) ----- */
+
+.admin-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  max-width: 560px;
+}
+.admin-form h3 { margin: 0; }
+.admin-form label { display: grid; gap: 4px; }
+.admin-form input,
+.admin-form select {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+.admin-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.ghost-button.danger { color: var(--red); border-color: #f1c6c2; }
+.ghost-button.danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
 @media (max-width: 900px) {
   .app-topbar { flex-wrap: wrap; }
   .app-nav { order: 3; width: 100%; overflow-x: auto; }

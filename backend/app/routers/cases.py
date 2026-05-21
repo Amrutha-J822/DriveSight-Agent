@@ -17,10 +17,12 @@ from app.database import (
     insert_coaching,
     list_cases,
     set_case_status,
+    update_case_progress,
     update_event_decision,
 )
 from app.schemas import (
     CaseRead,
+    CloseEscalationPayload,
     DetectedEventRead,
     DismissPayload,
     EscalatePayload,
@@ -238,4 +240,47 @@ def finalize_case(
             reason=coaching["reason"],
         )
 
+    return _load_case_or_404(case_id)
+
+
+# ---------------------------------------------------------------------------
+# Manager actions on cases
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{case_id}/close-escalation", response_model=CaseRead)
+def close_escalation(
+    case_id: str,
+    payload: CloseEscalationPayload,
+    _: CurrentUser = Depends(require_roles("manager")),
+) -> dict:
+    case = _load_case_or_404(case_id)
+    if case["status"] != "escalated":
+        raise HTTPException(status_code=400, detail="Only escalated cases can be closed.")
+    existing = (case.get("reviewer_notes") or "").strip()
+    combined = (existing + "\n\n" if existing else "") + f"[Manager resolution] {payload.resolution_notes}"
+    set_case_status(case_id, "resolved", combined)
+    return _load_case_or_404(case_id)
+
+
+@router.post("/{case_id}/reprocess", response_model=CaseRead)
+def reprocess_case(
+    case_id: str,
+    background_tasks: BackgroundTasks,
+    _: CurrentUser = Depends(require_roles("reviewer", "manager")),
+) -> dict:
+    case = _load_case_or_404(case_id)
+    if case["status"] not in {"failed", "review"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Only failed or already-processed cases can be reprocessed.",
+        )
+    candidate = Path(UPLOAD_DIR) / f"{case_id}_{case['video_filename']}"
+    if not candidate.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Original video file is no longer on disk (Render's free tier wipes uploads when the container restarts). Please upload again.",
+        )
+    update_case_progress(case_id, "processing", 0, None)
+    background_tasks.add_task(run_processing_job, case_id, candidate)
     return _load_case_or_404(case_id)

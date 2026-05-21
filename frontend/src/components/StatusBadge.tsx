@@ -7,6 +7,7 @@ const LABELS: Record<string, string> = {
   approved: "Approved",
   dismissed: "Dismissed",
   escalated: "Escalated",
+  resolved: "Resolved",
   failed: "Failed",
   pending: "Pending",
 };

@@ -6,18 +6,23 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.database import (
     acknowledge_coaching,
+    delete_driver as db_delete_driver,
     get_driver,
+    insert_driver,
     insert_driver_comment,
     list_cases,
     list_coaching,
     list_drivers,
+    update_driver as db_update_driver,
 )
 from app.schemas import (
     CaseRead,
     CoachingRead,
     DriverCommentCreate,
     DriverCommentRead,
+    DriverCreate,
     DriverRead,
+    DriverUpdate,
 )
 from app.services.auth import (
     CurrentUser,
@@ -32,6 +37,45 @@ router = APIRouter(prefix="/api/drivers", tags=["drivers"])
 @router.get("", response_model=list[DriverRead])
 def drivers(_: CurrentUser = Depends(require_roles("reviewer", "manager"))) -> list[dict]:
     return list_drivers()
+
+
+@router.post("", response_model=DriverRead, status_code=201)
+def create_driver(
+    payload: DriverCreate,
+    _: CurrentUser = Depends(require_roles("manager")),
+) -> dict:
+    driver_id = f"drv_{uuid4().hex[:10]}"
+    try:
+        return insert_driver(driver_id, payload.name, payload.employee_id, payload.vehicle_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not create driver: {exc}")
+
+
+@router.patch("/{driver_id}", response_model=DriverRead)
+def update_driver_route(
+    driver_id: str,
+    payload: DriverUpdate,
+    _: CurrentUser = Depends(require_roles("manager")),
+) -> dict:
+    if not get_driver(driver_id):
+        raise HTTPException(status_code=404, detail="Driver not found")
+    return db_update_driver(driver_id, payload.name, payload.employee_id, payload.vehicle_id)
+
+
+@router.delete("/{driver_id}", status_code=204)
+def delete_driver_route(
+    driver_id: str,
+    _: CurrentUser = Depends(require_roles("manager")),
+) -> None:
+    if not get_driver(driver_id):
+        raise HTTPException(status_code=404, detail="Driver not found")
+    try:
+        db_delete_driver(driver_id)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete driver — they still have cases or users linked. ({exc})",
+        )
 
 
 @router.get("/{driver_id}", response_model=DriverRead)
